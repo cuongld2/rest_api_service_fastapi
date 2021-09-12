@@ -7,6 +7,7 @@ def get_user_by_username(db: Session, username: str):
     return db.query(models.UserInfo).filter(models.UserInfo.username == username).first()
 
 
+
 def create_user(db: Session, user: schemas.UserCreate):
     hashed_password = bcrypt.hashpw(user.password.encode('utf-8'), bcrypt.gensalt())
     db_user = models.UserInfo(username=user.username, password=hashed_password, fullname=user.fullname)
@@ -38,3 +39,6 @@ def get_blog_by_id(db: Session, blog_id: int):
 
 
 
+def delete_blog_by_id(db:Session, blog: schemas.Blog):
+    db.delete(blog)
+    db.commit()

@@ -4,7 +4,6 @@ from jwt import PyJWTError
 from sqlalchemy.orm import Session
 from fastapi import Depends, FastAPI, HTTPException
 from starlette import status
-from fastapi.logger import logger
 import crud
 import models
 import schemas
@@ -41,17 +40,13 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    logger.warning(token)
     try:
         payload = decode_access_token(data=token)
         username: str = payload.get("sub")
-        logger.warning("user is : ",username)
         if username is None:
-            logger.warning("user is None ")
             raise credentials_exception
         token_data = TokenData(username=username)
     except PyJWTError:
-        logger.warning("PyJWTError ")
         raise credentials_exception
     user = get_user_by_username(db, username=token_data.username)
     if user is None:
@@ -101,6 +96,13 @@ async def get_all_blogs(current_user: UserInfo = Depends(get_current_user)
 async def get_blog_by_id(blog_id, current_user: UserInfo = Depends(get_current_user)
                          , db: Session = Depends(get_db)):
     return crud.get_blog_by_id(db=db, blog_id=blog_id)
+
+@app.delete("/blog/{blog_id}",status_code=204)
+async def delete_blog_by_id(blog_id,current_user: UserInfo = Depends(get_current_user)
+                         , db: Session = Depends(get_db)):
+    blog_delete = crud.get_blog_by_id(db=db,blog_id=blog_id)
+    if blog_delete:
+        crud.delete_blog_by_id(db=db,blog=blog_delete)
 
 
 if __name__ == "__main__":
