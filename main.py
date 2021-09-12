@@ -4,7 +4,7 @@ from jwt import PyJWTError
 from sqlalchemy.orm import Session
 from fastapi import Depends, FastAPI, HTTPException
 from starlette import status
-
+from fastapi.logger import logger
 import crud
 import models
 import schemas
@@ -17,7 +17,7 @@ models.Base.metadata.create_all(bind=engine)
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-app = FastAPI()
+app = FastAPI(debug=True)
 
 
 # Dependency
@@ -32,7 +32,7 @@ def get_db():
         db.close()
 
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/authenticate")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="authenticate")
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
@@ -41,13 +41,17 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    logger.warning(token)
     try:
         payload = decode_access_token(data=token)
         username: str = payload.get("sub")
+        logger.warning("user is : ",username)
         if username is None:
+            logger.warning("user is None ")
             raise credentials_exception
         token_data = TokenData(username=username)
     except PyJWTError:
+        logger.warning("PyJWTError ")
         raise credentials_exception
     user = get_user_by_username(db, username=token_data.username)
     if user is None:
@@ -100,4 +104,7 @@ async def get_blog_by_id(blog_id, current_user: UserInfo = Depends(get_current_u
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8081)
+    log_config = uvicorn.config.LOGGING_CONFIG
+    log_config["formatters"]["access"]["fmt"] = "%(asctime)s - %(levelname)s - %(message)s"
+    log_config["formatters"]["default"]["fmt"] = "%(asctime)s - %(levelname)s - %(message)s"
+    uvicorn.run(app, log_config=log_config)

@@ -12,7 +12,7 @@ sqlalchemy = "*"
 mysql-connector-python = "*"
 bcrypt = "*"
 pytest = "*"
-pyjwt = "*"
+pyjwt = {extras = ["crypto"], version = "*"}
 
 [requires]
-python_version = "3.7"
+python_version = "3.9"
